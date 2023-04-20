@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 
 typedef enum {
     NO_ERROR,
@@ -120,10 +121,9 @@ err_t process_headers(FILE* input, FILE* output) {
     return NO_ERROR;
 }
 
-int main(void) {
+void encode(void) {
     FILE* input_file, * output_file;
     err_t err;
-    char message[] = "Hello World!";
 
 //    input_file = fopen("pm_extruded_block.bmp", "rb");
     input_file = fopen("hristo.bmp", "rb");
@@ -154,6 +154,58 @@ int main(void) {
 
     fclose(input_file);
     fclose(output_file);
+
+}
+
+int main(void) {
+//    encode();
+    char message[] = "Hello World!";
+    uint8_t carrier[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, };
+    uint8_t mask;
+
+    int mes_i, car_i, bits;
+    unsigned length = strlen(message);
+    for (car_i = 0; car_i < 8; car_i++) {
+        carrier[car_i] &= 0xFE;
+    }
+
+    /*
+        carrier[car_i]                                     // 1111 1111
+        message[mes_i]                                     // 0100 0010
+
+        message[mes_i] >> bits                             // 0010 0001
+        (message[mes_i] >> bits) & 1                       // 0000 0001
+        (message[mes_i] >> bits) | 0xFE                    // 1111 1111
+     */
+
+    for (mes_i = 0; mes_i <= length; mes_i++) {
+        for (bits = 0; bits < 8; bits++) {
+            if ((message[mes_i] >> bits) & 1) {
+                carrier[car_i] |= 1;
+            }
+            else {
+                carrier[car_i] &= 0xFE;
+            }
+            car_i++;
+        }
+    }
+
+    for(int k = 0; k < 113; k++) printf("%x ", carrier[k]);
+
+    char decoded_message[14];
+
+    car_i = 8;
+    mes_i = 0;
+    do {
+        decoded_message[mes_i] = 0;
+        for (bits = 0; bits < 8; bits++) {
+            if (carrier[car_i++] & 1) {
+                decoded_message[mes_i] |= 1 << bits;
+            }
+        }
+    } while(decoded_message[mes_i++]);
+    printf("\n%s", decoded_message);
+    printf("\n%d", mes_i);
 
     return 0;
 }
