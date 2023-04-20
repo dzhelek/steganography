@@ -3,13 +3,23 @@
 //
 #include <stdio.h>
 #include <stdint.h>
+#include <stdlib.h>
+
+typedef enum {
+    NO_ERROR,
+    ERR_OPEN,
+    ERR_READ,
+    ERR_WRITE,
+    ERR_UNSUPPORTED,
+    ERR_ENCODE,
+} err_t;
 
 struct {
     uint16_t type;
     uint32_t size;
     uint16_t reserved1;
     uint16_t reserved2;
-    uint32_t offBits;
+    uint32_t offset;
 } file_header;
 
 struct {
@@ -26,41 +36,124 @@ struct {
     uint32_t clrImportant;
 } info_header;
 
-int main(void) {
-    FILE* file;
-    uint8_t buffer[10];
+typedef struct {
+    uint8_t blue;
+    uint8_t green;
+    uint8_t red;
+    uint8_t reserved;
+} rgb_quad_t;
 
-    file = fopen("pm_extruded_block.bmp", "rb");
-    if (file == NULL) {
-        fprintf(stderr, "Error when opening file!");
+err_t process(void* buffer, size_t size, FILE* input, FILE* output) {
+    if (!fread(buffer, size, 1, input)) {
+        fprintf(stderr, "Error when reading input file!");
+        return ERR_READ;
     }
+    if (output != NULL && !fwrite(buffer, size, 1, output)) {
+        fprintf(stderr, "Error when writing output file!");
+        return ERR_WRITE;
+    }
+    return NO_ERROR;
+}
+
+err_t process_headers(FILE* input, FILE* output) {
+    err_t err;
+    uint8_t* buffer, length;
+
+    // process file header
+    err = process(&file_header.type, 2, input, output);
+    if (err) return err;
+    if (file_header.type != 0x4d42) {
+        fprintf(stderr, "ERROR: unsupported file format");
+        return ERR_UNSUPPORTED;
+    }
+    err = process(&file_header.size, 4, input, output);
+    if (err) return err;
+    err = process(&file_header.reserved1, 2, input, output);
+    if (err) return err;
+    err = process(&file_header.reserved2, 2, input, output);
+    if (err) return err;
+    err = process(&file_header.offset, 4, input, output);
+    if (err) return err;
+    if (file_header.size - file_header.offset < 50) {
+        fprintf(stderr, "ERROR: unable to encode message of such length in file of such size");
+        return ERR_ENCODE;
+    }
+
+    // process DIB
+    err = process(&info_header.size, 4, input, output);
+    if (err) return err;
+    err = process(&info_header.width, 4, input, output);
+    if (err) return err;
+    err = process(&info_header.height, 4, input, output);
+    if (err) return err;
+    err = process(&info_header.planes, 2, input, output);
+    if (err) return err;
+    err = process(&info_header.bitCount, 2, input, output);
+    if (err) return err;
+    if (info_header.bitCount != 24) {
+        fprintf(stderr, "ERROR: %d-bit images are not supported", info_header.bitCount);
+        return ERR_UNSUPPORTED;
+    }
+    err = process(&info_header.compression, 4, input, output);
+    if (err) return err;
+    if (info_header.compression) {
+        fprintf(stderr, "ERROR: unsupported file compression");
+        return ERR_UNSUPPORTED;
+    }
+    err = process(&info_header.sizeImage, 4, input, output);
+    if (err) return err;
+    err = process(&info_header.xPixelsPerMeter, 4, input, output);
+    if (err) return err;
+    err = process(&info_header.yPixelsPerMeter, 4, input, output);
+    if (err) return err;
+    err = process(&info_header.clrUsed, 4, input, output);
+    if (err) return err;
+    err = process(&info_header.clrImportant, 4, input, output);
+    if (err) return err;
+
+    if ((length = file_header.offset - info_header.size - 14)) {
+        buffer = calloc(length, 1);
+        err = process(buffer, length, input, output);
+        if (err) return err;
+    }
+
+    return NO_ERROR;
+}
+
+int main(void) {
+    FILE* input_file, * output_file;
+    err_t err;
+    char message[] = "Hello World!";
+
+//    input_file = fopen("pm_extruded_block.bmp", "rb");
+    input_file = fopen("hristo.bmp", "rb");
+    if (input_file == NULL) {
+        fprintf(stderr, "Error when opening input file!");
+        exit(ERR_OPEN);
+    }
+    output_file = fopen("output.bmp", "wb");
+    if (output_file == NULL) {
+        fprintf(stderr, "Error when creating output file!");
+        fclose(input_file);
+        exit(ERR_OPEN);
+    }
+
 //    printf("%d", sizeof(file_header));
-    fread(&file_header.type, 2, 1, file);
-    fread(&file_header.size, 4, 1, file);
-    fread(&file_header.reserved1, 2, 1, file);
-    fread(&file_header.reserved2, 2, 1, file);
-    fread(&file_header.offBits, 4, 1, file);
+    err = process_headers(input_file, output_file);
+    if (err != NO_ERROR){
+        printf("\nfiles closed");
+        fclose(input_file);
+        fclose(output_file);
+        exit(err);
+    }
 
-    fread(&info_header.size, 4, 1, file);
-    fread(&info_header.width, 4, 1, file);
-    fread(&info_header.height, 4, 1, file);
-    fread(&info_header.planes, 2, 1, file);
-    fread(&info_header.bitCount, 2, 1, file);
-    fread(&info_header.compression, 4, 1, file);
-    fread(&info_header.sizeImage, 4, 1, file);
-    fread(&info_header.xPixelsPerMeter, 4, 1, file);
-    fread(&info_header.yPixelsPerMeter, 4, 1, file);
-    fread(&info_header.clrUsed, 4, 1, file);
-    fread(&info_header.clrImportant, 4, 1, file);
+//    fread(buffer, 1, 10, input_file);
+//    printf("\nbits: %x bpp\n", info_header.bitCount);
+    printf("\nwidth: %x p\n", info_header.width);
+//    for (int i = 0; i < 10; i++) printf("%x ", buffer[i]);
 
-    printf("\nsize: %x", info_header.size);
-    printf("\nwidth: %x",info_header.width);
-    printf("\nheight: %x",info_header.height);
-    printf("\nplanes: %x",info_header.planes);
-    printf("\nbit count: %x",info_header.bitCount);
-    printf("\ncompression: %x",info_header.compression);
-//    for (int i = 0; i < 14; i++) printf("%x ", file_header.bytes[i]);
-    fclose(file);
+    fclose(input_file);
+    fclose(output_file);
 
     return 0;
 }
