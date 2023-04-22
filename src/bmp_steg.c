@@ -29,7 +29,7 @@ void encode(char* message, char* input_filename, char* output_filename) {
 
     // read and write the headers
     err = process_headers(input_file, output_file);
-    if (file_header.size - file_header.offset < (length+2)*8) {
+    if (!err && (file_header.size - file_header.offset < (length+2)*8)) {
         fprintf(stderr, "ERROR: unable to encode message of such length in file of such size");
         err = ERR_ENCODE;
     }
