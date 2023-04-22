@@ -2,11 +2,11 @@
 // Created by joan_ on 18.4.2023 г..
 //
 
-#include "bmp_steg.h"
+#include "bmp_steg.h" // encode and decode BMP
 
-void show_help(void);
-void encode_mode(char* message, char* filename, char* output_path);
-void decode_mode(char* text_filename, char* filename, char* output_path);
+void show_help(void); // prints info on how to use this tool
+void encode_mode(char* message, char* filename, char* output_path); // encodes data into image
+void decode_mode(char* text_filename, char* filename, char* output_path); // decodes data from image
 
 typedef enum {
     NO_MODE,
@@ -21,12 +21,13 @@ int main(int argc, char* argv[]) {
         exit(ERR_COMMAND);
     }
 
-    mode_t mode = NO_MODE;
-    char* filename = NULL;
-    char* path = NULL;
-    char* message = NULL;
-    char* text_file = NULL;
+    mode_t mode = NO_MODE; // program mode - either encode or decode
+    char* filename = NULL; // the name of the input BMP image
+    char* path = NULL; // path to the output folder
+    char* message = NULL; // message to be encoded into image
+    char* text_file = NULL; // text file to store the decoded message
 
+    // process command line arguments
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "-o")) {
             path = argv[++i];
@@ -53,6 +54,7 @@ int main(int argc, char* argv[]) {
         exit(ERR_COMMAND);
     }
 
+    // depending on program mode chosen, call the respecting functions
     switch (mode) {
         case NO_MODE: {
             show_help();
@@ -80,9 +82,9 @@ int main(int argc, char* argv[]) {
 }
 
 void encode_mode(char* message, char* filename, char* output_path) {
-    const char *extension = "-steg.bmp";
-    char* output_filename;
-    uint64_t length, path_length;
+    const char *extension = "-steg.bmp"; // extension to the name of the output BMP image file
+    char* output_filename; // path to the output BMP image file
+    uint64_t length, path_length; // lengths of the path both including the filename and not
 
     if (output_path == NULL) {
         path_length = 0;
@@ -98,28 +100,30 @@ void encode_mode(char* message, char* filename, char* output_path) {
         exit(ERR_ALLOC);
     }
 
+    // concatenate the output path and the filename of the output BMP image
     if (output_path) {
         strcpy(output_filename, output_path);
         strcat(output_filename, "\\");
     }
     strcat(output_filename, filename);
-    output_filename[length - strlen(extension)] = 0;
-    strcat(output_filename, extension);
+    output_filename[length - strlen(extension)] = 0; // remove old extension
+    strcat(output_filename, extension); // add new extension
 
-    encode(message, filename, output_filename);
-    fprintf(stdout, "%s", output_filename);
+    encode(message, filename, output_filename); // call the encoding function
+    fprintf(stdout, "%s", output_filename); // print output file on success
 
     free(output_filename);
 }
 
 void decode_mode(char* text_filename, char* filename, char* output_path) {
-    unsigned char* buffer;
-    char* output_filename;
-    err_t err;
-    FILE* text_file;
+    unsigned char* buffer; // buffer to store the decoded message into
+    char* output_filename; // path to the output text file
+    err_t err; // error variable
+    FILE* text_file; // the text file stream
 
-    buffer = decode(filename);
+    buffer = decode(filename); // call the decoding function
 
+    // concatenate the output path and the filename of the output text file
     if (output_path == NULL) {
         output_filename = text_filename;
     }
@@ -135,6 +139,7 @@ void decode_mode(char* text_filename, char* filename, char* output_path) {
         strcat(output_filename, text_filename);
     }
 
+    // write decoded message into a new text file
     err = open(output_filename, "wb", &text_file);
     if (err) {
         exit(err);
@@ -142,16 +147,16 @@ void decode_mode(char* text_filename, char* filename, char* output_path) {
     fprintf(text_file, "%s", buffer);
     fclose(text_file);
 
-    fprintf(stdout, "%s", output_filename);
+    fprintf(stdout, "%s", output_filename); // print output file on success
 
     free(buffer);
 }
 
 void show_help(void) {
-    extern unsigned int help_txt_len;
-    extern unsigned char help_txt[];
+    extern unsigned char help_txt[]; // content of the help menu (help.c)
+    extern unsigned int help_txt_len; // length of that content
 
     for (int i = 0; i < help_txt_len; i++) {
-        fprintf(stdout, "%c", help_txt[i]);
+        fprintf(stdout, "%c", help_txt[i]); // print the content on the console
     }
 }

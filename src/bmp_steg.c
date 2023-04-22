@@ -4,18 +4,19 @@
 
 #include "bmp_steg.h"
 
-file_header_t file_header;
-info_header_t info_header;
+file_header_t file_header; // the BMP file header
+info_header_t info_header; // the DIB header
 
 void encode(char* message, char* input_filename, char* output_filename) {
-    FILE* input_file;
-    FILE* output_file;
-    err_t err;
-    uint8_t carrier[8];
-    uint8_t bits;
-    uint64_t mes_i;
-    uint64_t length = strlen(message);
+    FILE* input_file; // input BMP file
+    FILE* output_file; // output BMP file
+    err_t err; // error variable
+    uint8_t carrier[8]; // a byte, split into its 8 bits
+    uint8_t bits; // index/counter variable for the bits of a character
+    uint64_t mes_i; // index/counter variable for the message to encode
+    uint64_t length = strlen(message); // length of the message
 
+    // open and create the files
     err = open(input_filename, "rb", &input_file);
     if (err) {
         exit(err);
@@ -26,6 +27,7 @@ void encode(char* message, char* input_filename, char* output_filename) {
         exit(err);
     }
 
+    // read and write the headers
     err = process_headers(input_file, output_file);
     if (file_header.size - file_header.offset < (length+2)*8) {
         fprintf(stderr, "ERROR: unable to encode message of such length in file of such size");
@@ -37,6 +39,7 @@ void encode(char* message, char* input_filename, char* output_filename) {
         exit(err);
     }
 
+    // read the first 8 bytes from pixel data, set last bits to 0, and write them
     err = read(carrier, 1, 8, input_file, 0);
     if (err) {
         fclose(input_file);
@@ -44,7 +47,7 @@ void encode(char* message, char* input_filename, char* output_filename) {
         exit(err);
     }
     for (bits = 0; bits < 8; bits++) {
-        carrier[bits] &= 0xFE;
+        carrier[bits] &= 0xFE; // set last bits to 0
     }
     err = write(carrier, 1, 8, output_file);
     if (err) {
@@ -53,14 +56,16 @@ void encode(char* message, char* input_filename, char* output_filename) {
         exit(err);
     }
 
+    // encode message into the pixel data
     for (mes_i = 0; mes_i <= length; mes_i++) {
+        // read 8 bytes
         err = read(carrier, 1, 8, input_file, 0);
         if (err) {
             fclose(input_file);
             fclose(output_file);
             exit(err);
         }
-
+        // encode message byte into the carrier
         for (bits = 0; bits < 8; bits++) {
             if ((message[mes_i] >> bits) & 1) {
                 carrier[bits] |= 1;
@@ -69,7 +74,7 @@ void encode(char* message, char* input_filename, char* output_filename) {
                 carrier[bits] &= 0xFE;
             }
         }
-
+        // write modified carrier
         err = write(carrier, 1, 8, output_file);
         if (err) {
             fclose(input_file);
@@ -78,6 +83,7 @@ void encode(char* message, char* input_filename, char* output_filename) {
         }
     }
 
+    // read and write remaining part of the file
     while (!feof(input_file)) {
         err = process(&bits, 1, input_file, output_file, 1);
         if (err) {
@@ -87,51 +93,56 @@ void encode(char* message, char* input_filename, char* output_filename) {
         }
     }
 
+    // close files
     fclose(input_file);
     fclose(output_file);
 
 }
 
 unsigned char* decode(char* filename) {
-    FILE* input_file, * output_file;
-    err_t err;
-    uint64_t mes_i;
-    uint8_t bits;
-    uint8_t carrier[8];
-    uint8_t* message = calloc(BUFFER_SIZE, 1);
+    FILE* input_file; // input BMP file
+    err_t err; // error variable
+    uint64_t mes_i; // index/counter variable for the message to encode
+    uint8_t bits; // index/counter variable for the bits of a character
+    uint8_t carrier[8]; // a byte, split into its 8 bits
+    uint8_t* message = calloc(BUFFER_SIZE, 1); // variable to store the decoded message into
 
     if (message == NULL) {
         fprintf(stderr, "ERROR: not enough dynamic memory");
         exit(ERR_ALLOC);
     }
 
+    // open BMP file
     err = open(filename, "rb", &input_file);
     if (err) {
         exit(err);
     }
 
+    // read and check the headers
     err = process_headers(input_file, NULL);
     if (err != NO_ERROR){
         fclose(input_file);
         exit(err);
     }
 
+    // read first 8 bytes from pixel data and check if last bits are 0
     err = read(carrier, 1, 8, input_file, 0);
     if (err) {
         fclose(input_file);
         exit(err);
     }
     for (bits = 0; bits < 8; bits++) {
-        if (carrier[bits] & 1) {
+        if (carrier[bits] & 1) { // check if last bit is 0
             fprintf(stderr, "Error when decoding message");
             fclose(input_file);
             exit(ERR_DECODE);
         }
     }
 
+    // decode message from the pixel data
     mes_i = 0;
     do {
-        if (mes_i % BUFFER_SIZE == 0) {
+        if (mes_i % BUFFER_SIZE == 0) { // reallocate more memory before buffer overflow
             message = realloc(message, mes_i + BUFFER_SIZE);
             if (message == NULL) {
                 fprintf(stderr, "ERROR: not enough dynamic memory");
@@ -140,6 +151,7 @@ unsigned char* decode(char* filename) {
             }
         }
         message[mes_i] = 0;
+        // read 8 bytes and store every last bit in the respecting position of the message byte
         err = read(carrier, 1, 8, input_file, 0);
         if (err) {
             fclose(input_file);
@@ -150,18 +162,19 @@ unsigned char* decode(char* filename) {
                 message[mes_i] |= 1 << bits;
             }
         }
-    } while(message[mes_i++]);
+    } while(message[mes_i++]); // repeat until 8 consecutive bytes with 0 in the LSB ('\0')
 
+    // close file
     fclose(input_file);
 
     return message;
 }
 
 err_t process_headers(FILE* input, FILE* output) {
-    err_t err;
-    uint8_t* buffer, length;
+    err_t err; // error variable
+    uint8_t* buffer, length; // variables for processing remaining part of the DIB header if any
 
-    // process file header
+    // process BMP header
     err = process(&file_header.type, 2, input, output, 0);
     if (err) return err;
     if (file_header.type != 0x4d42) {
@@ -177,8 +190,7 @@ err_t process_headers(FILE* input, FILE* output) {
     err = process(&file_header.offset, 4, input, output, 0);
     if (err) return err;
 
-
-    // process DIB
+    // process DIB header
     err = process(&info_header.size, 4, input, output, 0);
     if (err) return err;
     err = process(&info_header.width, 4, input, output, 0);
@@ -210,6 +222,7 @@ err_t process_headers(FILE* input, FILE* output) {
     err = process(&info_header.clrImportant, 4, input, output, 0);
     if (err) return err;
 
+    // process the remaining part of the DIB header if any
     if ((length = file_header.offset - info_header.size - 14)) {
         buffer = calloc(length, 1);
         if (buffer == NULL) {
@@ -225,11 +238,11 @@ err_t process_headers(FILE* input, FILE* output) {
 }
 
 err_t process(void* buffer, size_t size, FILE* input, FILE* output, uint8_t expect_eof) {
-    err_t err;
+    err_t err; // error variable
 
-    err = read(buffer, size, 1, input, expect_eof);
+    err = read(buffer, size, 1, input, expect_eof); // read size data into buffer
     if (err) return err;
-    if (output != NULL) {
+    if (output != NULL) { // write size data from buffer into output file if given
         err = write(buffer, size, 1, output);
         if (err) return err;
     }
@@ -237,7 +250,7 @@ err_t process(void* buffer, size_t size, FILE* input, FILE* output, uint8_t expe
 }
 
 err_t read(void* buffer, size_t size, size_t count, FILE* stream, uint8_t expect_eof) {
-    if (!fread(buffer, size, count, stream)) {
+    if (!fread(buffer, size, count, stream)) { // read data
         if (!expect_eof && feof(stream)) {
             fprintf(stderr, "ERROR: Unexpected EOF");
             return ERR_READ;
@@ -251,7 +264,7 @@ err_t read(void* buffer, size_t size, size_t count, FILE* stream, uint8_t expect
 }
 
 err_t write(void* buffer, size_t size, size_t count, FILE* stream) {
-    if (!fwrite(buffer, size, count, stream)) {
+    if (!fwrite(buffer, size, count, stream)) { // write data
         fprintf(stderr, "Error when writing output file!");
         return ERR_WRITE;
     }
@@ -259,7 +272,7 @@ err_t write(void* buffer, size_t size, size_t count, FILE* stream) {
 }
 
 err_t open(char* filename, char* mode, FILE** p_stream) {
-    *p_stream = fopen(filename, mode);
+    *p_stream = fopen(filename, mode); // open file in pointer to the stream
     if (*p_stream == NULL) {
         if (!strcmp(mode, "rb")) {
             fprintf(stderr, "Error when opening input file!");
