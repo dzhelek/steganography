@@ -10,18 +10,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define BUFFER_SIZE 5
+#include "errors.h"
 
-typedef enum {
-    NO_ERROR,
-    ERR_OPEN,
-    ERR_READ,
-    ERR_WRITE,
-    ERR_ALLOC,
-    ERR_UNSUPPORTED,
-    ERR_ENCODE,
-    ERR_DECODE,
-} err_t;
+#define BUFFER_SIZE 5
 
 typedef struct{
     uint16_t type;
