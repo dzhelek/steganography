@@ -123,7 +123,7 @@ err_t open(char* filename, char* mode, FILE** p_stream) {
     return NO_ERROR;
 }
 
-void encode(char* message, char* filename) {
+void encode(char* message, char* input_filename, char* output_filename) {
     FILE* input_file;
     FILE* output_file;
     err_t err;
@@ -132,11 +132,11 @@ void encode(char* message, char* filename) {
     uint64_t mes_i;
     uint64_t length = strlen(message);
 
-    err = open(filename, "rb", &input_file);
+    err = open(input_filename, "rb", &input_file);
     if (err) {
         exit(err);
     }
-    err = open("output.bmp", "wb", &output_file);
+    err = open(output_filename, "wb", &output_file);
     if (err) {
         fclose(input_file);
         exit(err);

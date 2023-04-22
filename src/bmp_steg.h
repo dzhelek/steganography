@@ -55,7 +55,7 @@ err_t process_headers(FILE* input, FILE* output);
 
 err_t open(char* filename, char* mode, FILE** p_stream);
 
-void encode(char* message, char* filename);
+void encode(char* message, char* input_filename, char* output_filename);
 
 unsigned char* decode(char* filename);
 
