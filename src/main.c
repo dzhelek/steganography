@@ -16,7 +16,7 @@ int main(void) {
         exit(ERR_ALLOC);
     }
 
-    strcat(output_filename, output_path);
+    strcpy(output_filename, output_path);
     strcat(output_filename, "\\");
     strcat(output_filename, filename);
     output_filename[length - strlen(extension)] = 0;
@@ -24,14 +24,30 @@ int main(void) {
 
     printf("%s", output_filename);
 
-    char message[] = "Hello World!\nThis message is encoded into an image. Nice, huh?";
+    char* message = "Hello World!\nThis message is encoded into an image. Nice, huh?";
     encode(message, filename, output_filename);
 
+    char* text_filename = "hristo.txt";
     unsigned char* buffer;
+    err_t err;
+    FILE* text_file;
     buffer = decode(output_filename);
-    printf("\n%s", buffer);
+    free(output_filename);
+    output_filename = calloc(strlen(output_path) + strlen(text_filename) + 2, 1);
+
+    strcpy(output_filename, output_path);
+    strcat(output_filename, "\\");
+    strcat(output_filename, text_filename);
+
+    err = open(output_filename, "wb", &text_file);
+    if (err) {
+        exit(err);
+    }
+    fprintf(text_file, "%s", buffer);
+    fclose(text_file);
 
     free(output_filename);
+    free(buffer);
 
     return 0;
 }
