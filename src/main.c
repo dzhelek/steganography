@@ -81,10 +81,20 @@ int main(int argc, char* argv[]) {
     return 0;
 }
 
-void encode_mode(char* message, char* filename, char* output_path) {
+void encode_mode(char* message, char* filepath, char* output_path) {
     const char *extension = "-steg.bmp"; // extension to the name of the output BMP image file
     char* output_filename; // path to the output BMP image file
+    char* filename; // filename part of the filepath
     uint64_t length, path_length; // lengths of the path both including the filename and not
+
+    // get filename from filepath
+    filename = strrchr(filepath, '\\');
+    if (filename == NULL){
+        filename = filepath;
+    }
+    else {
+        filename++;
+    }
 
     if (output_path == NULL) {
         path_length = 0;
@@ -109,7 +119,7 @@ void encode_mode(char* message, char* filename, char* output_path) {
     output_filename[length - strlen(extension)] = 0; // remove old extension
     strcat(output_filename, extension); // add new extension
 
-    encode(message, filename, output_filename); // call the encoding function
+    encode(message, filepath, output_filename); // call the encoding function
     fprintf(stdout, "%s", output_filename); // print output file on success
 
     free(output_filename);

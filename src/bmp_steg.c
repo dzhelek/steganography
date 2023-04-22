@@ -280,10 +280,10 @@ err_t open(char* filename, char* mode, FILE** p_stream) {
     *p_stream = fopen(filename, mode); // open file in pointer to the stream
     if (*p_stream == NULL) {
         if (!strcmp(mode, "rb")) {
-            fprintf(stderr, "Error when opening input file!");
+            fprintf(stderr, "Error when opening input file: %s", filename);
         }
         else {
-            fprintf(stderr, "Error when creating output file!");
+            fprintf(stderr, "Error when creating output file: %s", filename);
         }
         return ERR_OPEN;
     }
