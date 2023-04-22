@@ -36,6 +36,7 @@ void encode(char* message, char* input_filename, char* output_filename) {
     if (err != NO_ERROR){
         fclose(input_file);
         fclose(output_file);
+        remove(output_filename);
         exit(err);
     }
 
@@ -44,6 +45,7 @@ void encode(char* message, char* input_filename, char* output_filename) {
     if (err) {
         fclose(input_file);
         fclose(output_file);
+        remove(output_filename);
         exit(err);
     }
     for (bits = 0; bits < 8; bits++) {
@@ -53,6 +55,7 @@ void encode(char* message, char* input_filename, char* output_filename) {
     if (err) {
         fclose(input_file);
         fclose(output_file);
+        remove(output_filename);
         exit(err);
     }
 
@@ -63,6 +66,7 @@ void encode(char* message, char* input_filename, char* output_filename) {
         if (err) {
             fclose(input_file);
             fclose(output_file);
+            remove(output_filename);
             exit(err);
         }
         // encode message byte into the carrier
@@ -79,6 +83,7 @@ void encode(char* message, char* input_filename, char* output_filename) {
         if (err) {
             fclose(input_file);
             fclose(output_file);
+            remove(output_filename);
             exit(err);
         }
     }
@@ -89,6 +94,7 @@ void encode(char* message, char* input_filename, char* output_filename) {
         if (err) {
             fclose(input_file);
             fclose(output_file);
+            remove(output_filename);
             exit(err);
         }
     }
@@ -96,7 +102,6 @@ void encode(char* message, char* input_filename, char* output_filename) {
     // close files
     fclose(input_file);
     fclose(output_file);
-
 }
 
 unsigned char* decode(char* filename) {
