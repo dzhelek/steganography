@@ -1,4 +1,10 @@
 # ***STEGANOGRAPHY***
+`src` folder contains the source code of the program:
+* `main.c` - processes command line arguments and calls respective functions for different modes
+* `bmp_steg.[ch]` - provides functions for encoding messages into BMP files and decoding messages from BMP files
+* `errors.h` - defines user errors
+* `help.c` - contains help menu, generated with `xxd -i help.txt > src/help.c` command
+
 # Криптиране и декриптиране на информация във визуални файлове
 Да се състави програмен продукт, който да използва конзолен интерфейс за 
 комуникация с потребителя.
