@@ -15,7 +15,12 @@ void encode_mode(char* message, char* filename, char* output_path);
 void decode_mode(char* text_filename, char* filename, char* output_path);
 
 void show_help(void) {
-    fprintf(stdout, "\n This is the help:\n");
+    extern unsigned int help_txt_len;
+    extern unsigned char help_txt[];
+
+    for (int i = 0; i < help_txt_len; i++) {
+        fprintf(stdout, "%c", help_txt[i]);
+    }
 }
 
 int main(int argc, char* argv[]) {

@@ -1,0 +1,16 @@
+
+
+Encodes secret_message into a copy of infile or decodes message
+hidden in infile into text_file.
+
+Usage:
+        steg [options] -i [infile] -e [secret_message]
+    or
+        steg [options] -i [infile] -d [text_file]
+
+[infile]            24-bit BMP file
+[secret_message]    text, put in quotation marks
+
+Options:
+    -o  specifies path to output files
+
