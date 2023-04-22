@@ -1,5 +1,4 @@
 
-
 Encodes secret_message into a copy of infile or decodes message
 hidden in infile into text_file.
 
@@ -13,4 +12,3 @@ Usage:
 
 Options:
     -o  specifies path to output files
-

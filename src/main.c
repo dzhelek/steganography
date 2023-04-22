@@ -4,24 +4,15 @@
 
 #include "bmp_steg.h"
 
+void show_help(void);
+void encode_mode(char* message, char* filename, char* output_path);
+void decode_mode(char* text_filename, char* filename, char* output_path);
+
 typedef enum {
     NO_MODE,
     MODE_ENCODE,
     MODE_DECODE,
 } mode_t;
-
-void show_help(void);
-void encode_mode(char* message, char* filename, char* output_path);
-void decode_mode(char* text_filename, char* filename, char* output_path);
-
-void show_help(void) {
-    extern unsigned int help_txt_len;
-    extern unsigned char help_txt[];
-
-    for (int i = 0; i < help_txt_len; i++) {
-        fprintf(stdout, "%c", help_txt[i]);
-    }
-}
 
 int main(int argc, char* argv[]) {
     if (argc < 5) {
@@ -154,4 +145,13 @@ void decode_mode(char* text_filename, char* filename, char* output_path) {
     fprintf(stdout, "%s", output_filename);
 
     free(buffer);
+}
+
+void show_help(void) {
+    extern unsigned int help_txt_len;
+    extern unsigned char help_txt[];
+
+    for (int i = 0; i < help_txt_len; i++) {
+        fprintf(stdout, "%c", help_txt[i]);
+    }
 }

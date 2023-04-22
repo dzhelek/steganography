@@ -36,18 +36,18 @@ typedef struct {
     uint32_t clrImportant;
 } info_header_t;
 
+void encode(char* message, char* input_filename, char* output_filename);
+
+unsigned char* decode(char* filename);
+
+err_t process_headers(FILE* input, FILE* output);
+
+err_t process(void* buffer, size_t size, FILE* input, FILE* output, uint8_t expect_eof);
+
 err_t read(void* buffer, size_t size, size_t count, FILE* stream, uint8_t expect_eof);
 
 err_t write(void* buffer, size_t size, size_t count, FILE* stream);
 
-err_t process(void* buffer, size_t size, FILE* input, FILE* output, uint8_t expect_eof);
-
-err_t process_headers(FILE* input, FILE* output);
-
 err_t open(char* filename, char* mode, FILE** p_stream);
-
-void encode(char* message, char* input_filename, char* output_filename);
-
-unsigned char* decode(char* filename);
 
 #endif //STEGANOGRAPHY_BMP_STEG_H
