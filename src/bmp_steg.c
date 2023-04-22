@@ -22,7 +22,7 @@ err_t read(void* buffer, size_t size, size_t count, FILE* stream, uint8_t expect
 }
 
 err_t write(void* buffer, size_t size, size_t count, FILE* stream) {
-    if (!fwrite(buffer, size, 1, stream)) {
+    if (!fwrite(buffer, size, count, stream)) {
         fprintf(stderr, "Error when writing output file!");
         return ERR_WRITE;
     }
@@ -162,10 +162,21 @@ void encode(char* message, char* filename) {
     for (bits = 0; bits < 8; bits++) {
         carrier[bits] &= 0xFE;
     }
-    fwrite(carrier, 1, 8, output_file);
+    err = write(carrier, 1, 8, output_file);
+    if (err) {
+        fclose(input_file);
+        fclose(output_file);
+        exit(err);
+    }
 
     for (mes_i = 0; mes_i <= length; mes_i++) {
-        fread(carrier, 1, 8, input_file);
+        err = read(carrier, 1, 8, input_file, 0);
+        if (err) {
+            fclose(input_file);
+            fclose(output_file);
+            exit(err);
+        }
+
         for (bits = 0; bits < 8; bits++) {
             if ((message[mes_i] >> bits) & 1) {
                 carrier[bits] |= 1;
@@ -174,11 +185,22 @@ void encode(char* message, char* filename) {
                 carrier[bits] &= 0xFE;
             }
         }
-        fwrite(carrier, 1, 8, output_file);
+
+        err = write(carrier, 1, 8, output_file);
+        if (err) {
+            fclose(input_file);
+            fclose(output_file);
+            exit(err);
+        }
     }
 
     while (!feof(input_file)) {
-        process(&bits, 1, input_file, output_file, 1);
+        err = process(&bits, 1, input_file, output_file, 1);
+        if (err) {
+            fclose(input_file);
+            fclose(output_file);
+            exit(err);
+        }
     }
 
     fclose(input_file);
@@ -210,7 +232,11 @@ unsigned char* decode(char* filename) {
         exit(err);
     }
 
-    fread(carrier, 1, 8, input_file);
+    err = read(carrier, 1, 8, input_file, 0);
+    if (err) {
+        fclose(input_file);
+        exit(err);
+    }
     for (bits = 0; bits < 8; bits++) {
         if (carrier[bits] & 1) {
             fprintf(stderr, "Error when decoding message");
@@ -221,7 +247,7 @@ unsigned char* decode(char* filename) {
 
     mes_i = 0;
     do {
-        if (mes_i == BUFFER_SIZE) {
+        if (mes_i % BUFFER_SIZE == 0) {
             message = realloc(message, mes_i + BUFFER_SIZE);
             if (message == NULL) {
                 fprintf(stderr, "ERROR: not enough dynamic memory");
@@ -230,7 +256,11 @@ unsigned char* decode(char* filename) {
             }
         }
         message[mes_i] = 0;
-        fread(carrier, 1, 8, input_file);
+        err = read(carrier, 1, 8, input_file, 0);
+        if (err) {
+            fclose(input_file);
+            exit(err);
+        }
         for (bits = 0; bits < 8; bits++) {
             if (carrier[bits] & 1) {
                 message[mes_i] |= 1 << bits;

@@ -5,7 +5,7 @@
 #include "bmp_steg.h"
 
 int main(void) {
-    char message[] = "Hello World!";
+    char message[] = "Hello World!\nThis message is encoded into an image. Nice, huh?";
     encode(message, "hristo.bmp");
 
     unsigned char* buffer;
