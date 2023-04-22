@@ -4,42 +4,39 @@
 
 #include "bmp_steg.h"
 
-struct {
-    uint16_t type;
-    uint32_t size;
-    uint16_t reserved1;
-    uint16_t reserved2;
-    uint32_t offset;
-} file_header;
+file_header_t file_header;
+info_header_t info_header;
 
-struct {
-    uint32_t size;
-    uint32_t width;
-    uint32_t height;
-    uint16_t planes;
-    uint16_t bitCount;
-    uint32_t compression;
-    uint32_t sizeImage;
-    uint32_t xPixelsPerMeter;
-    uint32_t yPixelsPerMeter;
-    uint32_t clrUsed;
-    uint32_t clrImportant;
-} info_header;
-
-err_t process(void* buffer, size_t size, FILE* input, FILE* output, uint8_t expect_eof) {
-    if (!fread(buffer, size, 1, input)) {
-        if (!expect_eof && feof(input)) {
+err_t read(void* buffer, size_t size, size_t count, FILE* stream, uint8_t expect_eof) {
+    if (!fread(buffer, size, count, stream)) {
+        if (!expect_eof && feof(stream)) {
             fprintf(stderr, "ERROR: Unexpected EOF");
             return ERR_READ;
         }
-        if (ferror(input)) {
+        if (ferror(stream)) {
             fprintf(stderr, "Error when reading input file!");
             return ERR_READ;
         }
     }
-    if (output != NULL && !fwrite(buffer, size, 1, output)) {
+    return NO_ERROR;
+}
+
+err_t write(void* buffer, size_t size, size_t count, FILE* stream) {
+    if (!fwrite(buffer, size, 1, stream)) {
         fprintf(stderr, "Error when writing output file!");
         return ERR_WRITE;
+    }
+    return NO_ERROR;
+}
+
+err_t process(void* buffer, size_t size, FILE* input, FILE* output, uint8_t expect_eof) {
+    err_t err;
+
+    err = read(buffer, size, 1, input, expect_eof);
+    if (err) return err;
+    if (output != NULL) {
+        err = write(buffer, size, 1, output);
+        if (err) return err;
     }
     return NO_ERROR;
 }
@@ -99,8 +96,28 @@ err_t process_headers(FILE* input, FILE* output) {
 
     if ((length = file_header.offset - info_header.size - 14)) {
         buffer = calloc(length, 1);
+        if (buffer == NULL) {
+            fprintf(stderr, "ERROR: not enough dynamic memory");
+            return ERR_ALLOC;
+        }
         err = process(buffer, length, input, output, 0);
+        free(buffer);
         if (err) return err;
+    }
+
+    return NO_ERROR;
+}
+
+err_t open(char* filename, char* mode, FILE** p_stream) {
+    *p_stream = fopen(filename, mode);
+    if (*p_stream == NULL) {
+        if (!strcmp(mode, "rb")) {
+            fprintf(stderr, "Error when opening input file!");
+        }
+        else {
+            fprintf(stderr, "Error when creating output file!");
+        }
+        return ERR_OPEN;
     }
 
     return NO_ERROR;
@@ -115,16 +132,14 @@ void encode(char* message, char* filename) {
     uint64_t mes_i;
     uint64_t length = strlen(message);
 
-    input_file = fopen(filename, "rb");
-    if (input_file == NULL) {
-        fprintf(stderr, "Error when opening input file!");
-        exit(ERR_OPEN);
+    err = open(filename, "rb", &input_file);
+    if (err) {
+        exit(err);
     }
-    output_file = fopen("output.bmp", "wb");
-    if (output_file == NULL) {
-        fprintf(stderr, "Error when creating output file!");
+    err = open("output.bmp", "wb", &output_file);
+    if (err) {
         fclose(input_file);
-        exit(ERR_OPEN);
+        exit(err);
     }
 
     err = process_headers(input_file, output_file);
@@ -138,7 +153,12 @@ void encode(char* message, char* filename) {
         exit(err);
     }
 
-    fread(carrier, 1, 8, input_file);
+    err = read(carrier, 1, 8, input_file, 0);
+    if (err) {
+        fclose(input_file);
+        fclose(output_file);
+        exit(err);
+    }
     for (bits = 0; bits < 8; bits++) {
         carrier[bits] &= 0xFE;
     }
@@ -179,10 +199,9 @@ unsigned char* decode(char* filename) {
         exit(ERR_ALLOC);
     }
 
-    input_file = fopen(filename, "rb");
-    if (input_file == NULL) {
-        fprintf(stderr, "Error when opening input file!");
-        exit(ERR_OPEN);
+    err = open(filename, "rb", &input_file);
+    if (err) {
+        exit(err);
     }
 
     err = process_headers(input_file, NULL);
@@ -195,6 +214,7 @@ unsigned char* decode(char* filename) {
     for (bits = 0; bits < 8; bits++) {
         if (carrier[bits] & 1) {
             fprintf(stderr, "Error when decoding message");
+            fclose(input_file);
             exit(ERR_DECODE);
         }
     }
@@ -203,6 +223,11 @@ unsigned char* decode(char* filename) {
     do {
         if (mes_i == BUFFER_SIZE) {
             message = realloc(message, mes_i + BUFFER_SIZE);
+            if (message == NULL) {
+                fprintf(stderr, "ERROR: not enough dynamic memory");
+                fclose(input_file);
+                exit(ERR_ALLOC);
+            }
         }
         message[mes_i] = 0;
         fread(carrier, 1, 8, input_file);
