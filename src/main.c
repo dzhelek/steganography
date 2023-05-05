@@ -4,9 +4,26 @@
 
 #include "bmp_steg.h" // encode and decode BMP
 
-void show_help(void); // prints info on how to use this tool
-void encode_mode(char* message, char* filename, char* output_path); // encodes data into image
-void decode_mode(char* text_filename, char* filename, char* output_path); // decodes data from image
+/**
+ * @brief prints info on how to use this tool
+ */
+void show_help(void);
+
+/**
+ * @brief encodes data into image
+ * @param message - data to be encoded
+ * @param filename - path to the image file
+ * @param output_path - path to the output directory
+ */
+void encode_mode(char* message, char* filename, char* output_path);
+
+/**
+ * @brief decodes data from image
+ * @param text_filename - name of the output text file
+ * @param filename - path to the image file to decode the message from
+ * @param output_path - path to the output directory
+ */
+void decode_mode(char* text_filename, char* filename, char* output_path);
 
 typedef enum {
     NO_MODE,
