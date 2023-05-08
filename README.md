@@ -5,6 +5,8 @@
 * `errors.h` - defines user errors
 * `help.c` - contains help menu, generated with `xxd -i help.txt > src/help.c` command
 
+![diagram](diagram.png)
+
 # Криптиране и декриптиране на информация във визуални файлове
 Да се състави програмен продукт, който да използва конзолен интерфейс за 
 комуникация с потребителя.

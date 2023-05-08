@@ -2,6 +2,7 @@ cmake-build-debug/
 .idea
 .vscode
 *.bmp
+*.drawio
 
 # Prerequisites
 *.d
