@@ -10,7 +10,7 @@
 void show_help(void);
 
 /**
- * @brief encodes data into image
+ * @brief deals with filepaths and encodes data into image
  * @param message - data to be encoded
  * @param filename - path to the image file
  * @param output_path - path to the output directory
@@ -18,7 +18,7 @@ void show_help(void);
 void encode_mode(char* message, char* filename, char* output_path);
 
 /**
- * @brief decodes data from image
+ * @brief deals with filepaths, decodes data from image and saves it into a text file
  * @param text_filename - name of the output text file
  * @param filename - path to the image file to decode the message from
  * @param output_path - path to the output directory
